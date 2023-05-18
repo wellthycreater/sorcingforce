@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>제조사 매칭 중개 사이트</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script type="text/javascript" src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=YOUR_CLIENT_ID&submodules=geocoder"></script>
+</head>
+<body>
+    <header>
+        <div class="header-top">
+            <h1>제조사 매칭 중개 사이트</h1>
+        </div>
+        <div class="header-bottom">
+            <form id="productForm">
+                <label for="productInput">원하는 상품명:</label>
+                <input type="text" id="productInput" placeholder="상품명을 입력하세요">
+                <label for="addressInput">배송지 주소:</label>
+                <input type="text" id="addressInput" placeholder="도로명 주소를 입력하세요">
+                <button type="submit">검색</button>
+            </form>
+        </div>
+    </header>
+    <main>
+        <div id="matchingResults"></div>
+        <div id="map"></div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
+<style>
+ body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    background-color: #333;
+    color: #fff;
+    padding: 10px;
+}
+
+.header-top {
+    text-align: center;
+}
+
+.header-bottom {
+    text-align: center;
+    margin-top: 10px;
+}
+
+h1 {
+    margin: 0;
+}
+
+main {
+    padding: 20px;
+    text-align: center;
+}
+
+.filter-section {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.filter-section label,
+.filter-section select {
+    margin: 5px;
+}
+
+.manufacturer-container {
+    display: inline-block;
+    vertical-align: top;
+    margin: 10px;
+    text-align: center;
+}
+
+.manufacturer-container img {
+    max-width: 200px;
+}
+
+.manufacturer-container p {
+    margin: 10px 0;
+}
+
+.product-image {
+    margin-top: 10px;
+}
+
+#map {
+    width: 100%;
+    height: 400px;
+    margin-top: 20px;
+}
+#matchingResults {
+    display: none;
+}
+
+
+</style>
+<script>
+document.getElementById("productForm").addEventListener("submit", function(event) {
+    event.preventDefault(); // Prevent form submission
+
+    var productInput = document.getElementById("productInput").value;
+    var addressInput = document.getElementById("addressInput").value;
+
+    // Perform matching/bidding logic here and update the "matchingResults" div with the results
+    var matchingResults = document.getElementById("matchingResults");
+    matchingResults.innerHTML = ""; // Clear previous results
+
+    // Example data (replace with actual matching/bidding logic)
+    var matchedManufacturers = [
+        {
+            name: "제조사 A",
+            location: "서울",
+            category: "전자제품",
+            price: 10000,
+            logo: "manufacturer-a-logo.jpg",
+            image: "product-image-a.jpg",
+            latitude: 37.5665,
+            longitude: 126.9780
+        },
+        {
+            name: "제조사 B",
+            location: "경기",
+            category: "의류",
+            price: 1500000,
+            logo: "manufacturer-b-logo.jpg",
+            image: "product-image-b.jpg",
+            latitude: 37.4922,
+            longitude: 127.0304
+        },
+        {
+            name: "제조사 C",
+            location: "부산",
+            category: "식품",
+            price: 120000,
+            logo: "manufacturer-c-logo.jpg",
+            image: "product-image-c.jpg",
+            latitude: 35.1796,
+            longitude: 129.0756
+        }
+    ];
+
+    // Create Naver Maps instance
+    var map = new naver.maps.Map("map", {
+        center: new naver.maps.LatLng(37.5665, 126.9780), // Set default center position (Seoul)
+        zoom: 12 // Set default zoom level
+    });
+
+    // Create Geocoder instance
+    var geocoder = new naver.maps.services.Geocoder();
+
+    // Perform geocoding to retrieve latitude and longitude of the entered address
+    geocoder.addressToCoordinate(addressInput, function(result, status) {
+        if (status === naver.maps.Service.Status.ERROR) {
+            console.log("Error occurred while geocoding.");
+            return;
+        }
+        
+        if (result.length > 0) {
+            var address = result[0].address;
+            var point = new naver.maps.Point(result[0].x, result[0].y);
+            
+            // Set map center to the geocoded coordinates
+            map.setCenter(point);
+
+            // Create a marker on the map for the entered address
+            var marker = new naver.maps.Marker({
+                position: point,
+                map: map
+            });
+
+            // Calculate distances between the entered address and each manufacturer's location
+            var distances = matchedManufacturers.map(function(manufacturer) {
+                var manufacturerPosition = new naver.maps.LatLng(manufacturer.latitude, manufacturer.longitude);
+                var distance = naver.maps.geometry.spherical.computeDistanceBetween(point, manufacturerPosition);
+                return {
+                    manufacturer: manufacturer,
+                    distance: distance
+                };
+            });
+
+            // Sort manufacturers by distance in ascending order
+            distances.sort(function(a, b) {
+                return a.distance - b.distance;
+            });
+
+            // Get the nearest manufacturer
+            var nearestManufacturer = distances[0].manufacturer;
+
+            // Create a container div for the nearest manufacturer
+            var nearestManufacturerContainer = document.createElement("div");
+            nearestManufacturerContainer.classList.add("manufacturer-container");
+
+            // Create an image element for the nearest manufacturer's logo
+            var nearestLogoImg = document.createElement("img");
+            nearestLogoImg.src = nearestManufacturer.logo;
+            nearestLogoImg.alt = nearestManufacturer.name + " 로고";
+            nearestManufacturerContainer.appendChild(nearestLogoImg);
+
+            // Create an image element for the product
+            var nearestProductImg = document.createElement("img");
+            nearestProductImg.src = nearestManufacturer.image;
+            nearestProductImg.alt = productInput + " 이미지";
+            nearestProductImg.classList.add("product-image"); /* 상품 이미지에 클래스 추가 */
+            nearestManufacturerContainer.appendChild(nearestProductImg);
+
+            // Create a paragraph element for the nearest manufacturer's name
+            var nearestManufacturerName = document.createElement("p");
+            nearestManufacturerName.textContent = "제조사: " + nearestManufacturer.name;
+            nearestManufacturerContainer.appendChild(nearestManufacturerName);
+
+            // Create a paragraph element for the nearest manufacturer's location
+            var nearestManufacturerLocation = document.createElement("p");
+            nearestManufacturerLocation.textContent = "지역: " + nearestManufacturer.location;
+            nearestManufacturerContainer.appendChild(nearestManufacturerLocation);
+
+            // Create a paragraph element for the nearest manufacturer's category
+            var nearestManufacturerCategory = document.createElement("p");
+            nearestManufacturerCategory.textContent = "카테고리: " + nearestManufacturer.category;
+            nearestManufacturerContainer.appendChild(nearestManufacturerCategory);
+
+            // Create a paragraph element for the nearest manufacturer's price
+            var nearestManufacturerPrice = document.createElement("p");
+            var formattedPrice = formatPrice(nearestManufacturer.price);
+            nearestManufacturerPrice.textContent = "가격: " + formattedPrice + "원";
+            nearestManufacturerContainer.appendChild(nearestManufacturerPrice);
+
+            // Create a "Purchase Request" button for the nearest manufacturer
+            var purchaseButton = document.createElement("button");
+            purchaseButton.textContent = "구매 요청";
+            purchaseButton.addEventListener("click", function() {
+                // Handle purchase request logic here
+                console.log("Purchase request sent to: " + nearestManufacturer.name);
+            });
+            nearestManufacturerContainer.appendChild(purchaseButton);
+
+            // Append the nearest manufacturer container to the matching results div
+            matchingResults.appendChild(nearestManufacturerContainer);
+        } else {
+            console.log("No result found for the entered address.");
+        }
+    });
+});
+
+// Function to format price with commas
+function formatPrice(price) {
+    return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+</script>
+</minPrice>
